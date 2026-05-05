@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitQuest - App sportive gamifiée</title>
+
+  <!-- Carte interactive Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg: #08080b;
+      --bg2: #16110f;
+      --card: #15151b;
+      --card2: #211915;
+      --orange: #fc4c02;
+      --orange2: #ff7a1a;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --blue: #38bdf8;
+      --text: #fff7ed;
+      --muted: #b8aaa2;
+      --border: rgba(255,255,255,.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(252,76,2,.35), transparent 34%),
+        radial-gradient(circle at 85% 15%, rgba(255,122,26,.22), transparent 30%),
+        linear-gradient(180deg, #0a0908 0%, #111827 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .hidden { display: none !important; }
+
+    .app {
+      max-width: 1150px;
+      margin: auto;
+      padding: 18px;
+      padding-bottom: 100px;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 460px;
+      background: rgba(21,21,27,.96);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 30px;
+      box-shadow: 0 30px 90px rgba(0,0,0,.45);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 29px;
+      font-weight: 950;
+      letter-spacing: -.5px;
+      margin-bottom: 10px;
+    }
+
+    .logo span { color: var(--orange); }
+    h1, h2, h3 { margin-top: 0; }
+    p { color: var(--muted); line-height: 1.45; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #0d0d12;
+      color: white;
+      margin: 8px 0 14px;
+      outline: none;
+      font-size: 15px;
+      font-family: Arial, sans-serif;
+    }
+
+    textarea { min-height: 90px; resize: vertical; }
+
+    button {
+      border: none;
+      border-radius: 17px;
+      padding: 13px 16px;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 15px;
+      box-shadow: 0 10px 25px rgba(252,76,2,.22);
+    }
+
+    button:hover { filter: brightness(1.05); }
+    button.secondary { background: #252531; box-shadow: none; }
+    button.yellow { background: #ca8a04; }
+    button.green { background: #16a34a; }
+    button.red { background: var(--red); box-shadow: none; }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      padding: 12px 0;
+      backdrop-filter: blur(14px);
+    }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--border);
+      padding: 9px 12px;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(21,21,27,.94);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+    }
+
+    .hero-card {
+      background:
+        linear-gradient(135deg, rgba(252,76,2,.25), rgba(21,21,27,.94)),
+        radial-gradient(circle at right, rgba(255,122,26,.22), transparent 40%);
+      border-color: rgba(252,76,2,.35);
+    }
+
+    #map {
+      height: 360px;
+      width: 100%;
+      border-radius: 26px;
+      overflow: hidden;
+      border: 1px solid rgba(252,76,2,.35);
+      margin: 15px 0;
+      background: #111;
+      z-index: 1;
+    }
+
+    .leaflet-container {
+      background: #111 !important;
+      color: #111;
+    }
+
+    .progress-wrap {
+      height: 15px;
+      background: #2b2b35;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--orange), var(--yellow));
+      transition: width .3s ease;
+    }
+
+    .info-grid, .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .info {
+      background: linear-gradient(180deg, #211915, #17171f);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 20px;
+    }
+
+    .info small { color: var(--muted); }
+    .info strong { display: block; margin-top: 6px; font-size: 18px; }
+
+    .tabs {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(8,8,11,.97);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      padding: 10px;
+      z-index: 1000;
+    }
+
+    .tab {
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 5px;
+      border-radius: 14px;
+      font-size: 11px;
+      box-shadow: none;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      color: white;
+    }
+
+    .shop-item {
+      background: linear-gradient(180deg, #201815, #15151b);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .shop-img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 18px;
+      background: #0b0b10;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .emoji { font-size: 42px; }
+
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .premium-card {
+      background: linear-gradient(135deg, rgba(250,204,21,.20), rgba(252,76,2,.18), rgba(21,21,27,.96));
+      border-color: rgba(250,204,21,.35);
+    }
+
+    .premium-hero {
+      background: linear-gradient(135deg, rgba(250,204,21,.25), rgba(252,76,2,.18), rgba(21,21,27,.98));
+      border-color: rgba(250,204,21,.3);
+      text-align: center;
+      padding: 30px;
+    }
+
+    .price {
+      font-size: 44px;
+      font-weight: 950;
+      margin: 10px 0;
+      color: white;
+    }
+
+    .success { color: var(--green); font-weight: 900; }
+    .warning { color: var(--yellow); font-weight: 900; }
+    .danger { color: var(--red); font-weight: 900; }
+    .orange { color: var(--orange2); font-weight: 900; }
+
+    .creator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .notice {
+      background: rgba(252,76,2,.12);
+      border: 1px solid rgba(252,76,2,.28);
+      color: #fed7aa;
+      padding: 12px;
+      border-radius: 18px;
+    }
+
+
+    .tracking-full {
+      min-height: calc(100vh - 130px);
+      display: grid;
+      gap: 16px;
+    }
+
+    .tracking-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #trackingMap {
+      height: 62vh;
+      min-height: 420px;
+      width: 100%;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 2px solid rgba(252,76,2,.55);
+      box-shadow: 0 25px 80px rgba(252,76,2,.18);
+      background: #111;
+      z-index: 1;
+    }
+
+    .tracking-bottom {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .finish-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,.72);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .finish-modal {
+      width: min(440px, 100%);
+      background: linear-gradient(135deg, rgba(252,76,2,.96), rgba(250,204,21,.9));
+      color: white;
+      border-radius: 34px;
+      padding: 34px;
+      text-align: center;
+      box-shadow: 0 30px 120px rgba(252,76,2,.4);
+      animation: popSuccess .75s ease both;
+    }
+
+    .finish-medal {
+      font-size: 84px;
+      animation: bounceMedal 1.1s ease infinite alternate;
+    }
+
+    @keyframes popSuccess {
+      0% { transform: scale(.65) rotate(-8deg); opacity: 0; }
+      70% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    @keyframes bounceMedal {
+      from { transform: translateY(0); }
+      to { transform: translateY(-12px); }
+    }
+
+    .payment-warning {
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.35);
+      color: #fecaca;
+      padding: 14px;
+      border-radius: 18px;
+      margin-top: 14px;
+    }
+
+
+    .ad-reward-card {
+      background: linear-gradient(135deg, rgba(56,189,248,.16), rgba(252,76,2,.14), rgba(21,21,27,.96));
+      border-color: rgba(56,189,248,.35);
+    }
+
+    .credit-pack-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .credit-pack {
+      background: linear-gradient(180deg, #201815, #15151b);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .credit-pack strong {
+      display: block;
+      font-size: 24px;
+      margin: 8px 0;
+      color: white;
+    }
+
+
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .challenge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .challenge-card {
+      background: linear-gradient(180deg, #201815, #15151b);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 15px;
+    }
+
+    .challenge-card.premium-locked {
+      opacity: .7;
+      border-style: dashed;
+    }
+
+    .reward-badge {
+      display: inline-block;
+      background: rgba(34,197,94,.14);
+      color: #bbf7d0;
+      border: 1px solid rgba(34,197,94,.28);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      margin: 6px 0;
+    }
+
+    .premium-feature-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,.075);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 14px;
+      text-align: left;
+    }
+
+    .route-options {
+      background: rgba(250,204,21,.08);
+      border: 1px solid rgba(250,204,21,.25);
+      border-radius: 20px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 800px) {
+      .credit-pack-grid, .challenge-grid, .premium-feature-list, .mini-grid { grid-template-columns: 1fr; }
+    }
+
+
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .challenge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .challenge-card {
+      background: linear-gradient(180deg, #201815, #15151b);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 15px;
+    }
+
+    .challenge-card.premium-locked {
+      opacity: .7;
+      border-style: dashed;
+    }
+
+    .reward-badge {
+      display: inline-block;
+      background: rgba(34,197,94,.14);
+      color: #bbf7d0;
+      border: 1px solid rgba(34,197,94,.28);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      margin: 6px 0;
+    }
+
+    .premium-feature-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,.075);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 14px;
+      text-align: left;
+    }
+
+    .route-options {
+      background: rgba(250,204,21,.08);
+      border: 1px solid rgba(250,204,21,.25);
+      border-radius: 20px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 800px) {
+      .grid, .creator-grid { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+      .shop-grid { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .stats { justify-content: flex-start; }
+      #map { height: 330px; }
+      #trackingMap { height: 58vh; min-height: 360px; }
+      .tracking-bottom { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+      .tabs { grid-template-columns: repeat(5, 1fr); }
+      .action-row button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="loginPage" class="hero">
+    <div class="login-box">
+      <div class="logo">🔥 <span>FitQuest</span></div>
+      <h1>Ton app sportive gamifiée</h1>
+      <p>Crée un compte, reçois un parcours, suis la carte, gagne des crédits et échange-les contre des récompenses.</p>
+
+      <label>Nom d’utilisateur</label>
+      <input id="usernameInput" placeholder="Ex: Alex" />
+
+      <label>Mot de passe</label>
+      <input id="passwordInput" type="password" placeholder="Mot de passe" />
+
+      <button onclick="login()" style="width:100%">Créer mon compte / Connexion</button>
+      <p style="font-size:13px">Le compte est enregistré sur ton appareil avec localStorage.</p>
+    </div>
+  </section>
+
+  <section id="appPage" class="app hidden">
+    <header class="topbar">
+      <div>
+        <div class="logo">🔥 <span>FitQuest</span></div>
+        <p id="helloText" style="margin:0"></p>
+      </div>
+      <div class="stats">
+        <div class="pill">💰 <span id="creditsText">0</span> crédits</div>
+        <div class="pill">🔥 Streak <span id="streakText">0</span>j</div>
+        <div class="pill">🏆 Niveau <span id="levelText">1</span></div>
+        <div class="pill">👑 <span id="premiumText">Basic</span></div>
+      </div>
+    </header>
+
+    <main id="homePage">
+      <div class="grid">
+        <div>
+          <div class="card hero-card">
+            <h2>🗺️ Génération de parcours GPS</h2>
+            <p>Génère un trajet depuis ta position. La carte affiche une route et la direction à prendre. Les crédits sont donnés seulement quand le parcours est terminé.</p>
+
+            <select id="sportMode">
+              <option value="course">🏃 Course</option>
+              <option value="velo">🚴 Vélo</option>
+            </select>
+
+            <div class="route-options">
+              <h3>👑 Parcours personnalisés Premium</h3>
+              <p>Basic : parcours aléatoires limités. Premium : choisis ta distance et ta difficulté.</p>
+              <div class="mini-grid">
+                <div>
+                  <label>Distance souhaitée</label>
+                  <select id="customDistance">
+                    <option value="auto">Automatique</option>
+                    <option value="2">2 km</option>
+                    <option value="3">3 km</option>
+                    <option value="5">5 km</option>
+                    <option value="8">8 km</option>
+                    <option value="10">10 km</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Difficulté</label>
+                  <select id="routeDifficulty">
+                    <option value="normal">Normal</option>
+                    <option value="easy">Facile</option>
+                    <option value="hard">Intense</option>
+                  </select>
+                </div>
+              </div>
+              <p id="routeLimitText" style="font-size:13px">Basic : 3 générations GPS par jour. Premium : illimité.</p>
+            </div>
+
+            <div id="map"></div>
+
+            <div class="info-grid">
+              <div class="info"><small>Parcours</small><strong id="routeName">Aucun</strong></div>
+              <div class="info"><small>Distance</small><strong id="routeDistance">Cachée 🔒</strong></div>
+              <div class="info"><small>Récompense</small><strong id="routeReward">—</strong></div>
+            </div>
+
+            <div class="action-row">
+              <button onclick="generateGpsRoute()">Générer depuis ma position</button>
+              <button class="secondary" onclick="startGpsTracking()">Démarrer le vrai GPS</button>
+              <button class="secondary" onclick="generateTestRoute()">Trajet test sur carte</button>
+            </div>
+
+            <p>Progression : <strong id="progressText">0%</strong></p>
+            <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+            <p id="gpsStatus">Carte : en attente.</p>
+            <div class="notice">Le trajet test sert seulement à voir la carte et la direction. Il ne donne pas de crédits.</div>
+          </div>
+
+          <div class="card">
+            <h2>🎁 Coffre quotidien</h2>
+            <p>Ouvre un coffre chaque jour pour gagner des crédits. Premium reçoit un coffre plus généreux.</p>
+            <div class="mini-grid">
+              <div class="info"><small>Basic</small><strong>10 à 50 crédits</strong></div>
+              <div class="info"><small>Premium</small><strong>50 à 150 crédits</strong></div>
+            </div>
+            <button onclick="openDailyChest()">Ouvrir mon coffre du jour</button>
+            <p id="dailyChestStatus" style="font-size:13px">Coffre disponible.</p>
+          </div>
+
+          <div class="card">
+            <h2>🎯 Défis quotidiens et hebdomadaires</h2>
+            <p>Termine des objectifs pour gagner plus de crédits. Les défis Premium rapportent davantage.</p>
+            <div id="challengeList" class="challenge-grid"></div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="card premium-card">
+            <h2>👑 Premium</h2>
+            <p>✅ Distance et temps estimé visibles</p>
+            <p>✅ +25% crédits à chaque trajet</p>
+            <p>✅ -15% sur la boutique</p>
+            <p>✅ Coffre Premium quotidien</p>
+            <p>✅ Défis exclusifs + aucune pub obligatoire</p>
+            <p>💶 7,99€ / mois</p>
+            <button class="yellow" onclick="showPremiumPage()" style="width:100%">Acheter Premium</button>
+          </div>
+
+          <div class="card ad-reward-card">
+            <h2>🎬 Crédits gratuits</h2>
+            <p>Regarde une publicité récompensée et gagne des crédits sans payer.</p>
+            <button onclick="watchAdForCredits()" style="width:100%">Regarder une pub = +20 crédits</button>
+            <p id="adRewardStatus" style="font-size:13px">Simulation : à connecter à AdMob ou une régie publicitaire.</p>
+          </div>
+
+          <div class="card">
+            <h2>👤 Profil</h2>
+            <p>Utilisateur : <strong id="profileName"></strong></p>
+            <p>Trajets terminés : <strong id="completedText">0</strong></p>
+            <button class="red" onclick="logout()" style="width:100%">Déconnexion</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+
+    <main id="trackingPage" class="hidden">
+      <div class="card hero-card tracking-full">
+        <div class="tracking-header">
+          <div>
+            <h2>📍 Trajet en cours</h2>
+            <p>Suis la ligne orange jusqu’à l’arrivée. Les crédits sont donnés uniquement à la fin.</p>
+          </div>
+          <button class="secondary" onclick="showPage('homePage', document.querySelectorAll('.tab')[0])">Retour accueil</button>
+        </div>
+
+        <div id="trackingMap"></div>
+
+        <div class="tracking-bottom">
+          <div class="info"><small>Progression</small><strong id="trackingProgressText">0%</strong></div>
+          <div class="info"><small>Distance</small><strong id="trackingDistanceText">—</strong></div>
+          <div class="info"><small>Récompense</small><strong id="trackingRewardText">—</strong></div>
+        </div>
+
+        <div>
+          <div class="progress-wrap"><div id="trackingProgressBar" class="progress-bar"></div></div>
+          <p id="trackingGpsStatus">GPS : en attente.</p>
+        </div>
+      </div>
+    </main>
+
+
+    <main id="shopPage" class="hidden">
+      <div class="card">
+        <h2>🛍️ Boutique</h2>
+        <p>Échange tes crédits contre des objets. Premium = réduction de 15%.</p>
+
+        <div class="card ad-reward-card" style="box-shadow:none">
+          <h3>🎬 Gagner des crédits gratuitement</h3>
+          <p>Regarde une publicité récompensée pour recevoir +20 crédits.</p>
+          <button onclick="watchAdForCredits()">Regarder une pub = +20 crédits</button>
+          <p id="shopAdRewardStatus" style="font-size:13px">Simulation : remplace cette action par une vraie pub récompensée AdMob.</p>
+        </div>
+
+        <div class="card" style="box-shadow:none">
+          <h3>💳 Acheter des crédits</h3>
+          <p>Achats ponctuels pour les utilisateurs qui ne veulent pas prendre Premium.</p>
+          <div class="credit-pack-grid">
+            <div class="credit-pack">
+              <small>Pack Découverte</small>
+              <strong>500 crédits</strong>
+              <p>0,99€</p>
+              <button onclick="buyCreditPack(500, '0,99€')">Acheter</button>
+            </div>
+            <div class="credit-pack">
+              <small>Pack Sportif</small>
+              <strong>1 500 crédits</strong>
+              <p>2,99€</p>
+              <button onclick="buyCreditPack(1500, '2,99€')">Acheter</button>
+            </div>
+            <div class="credit-pack">
+              <small>Pack Champion</small>
+              <strong>4 000 crédits</strong>
+              <p>6,99€</p>
+              <button onclick="buyCreditPack(4000, '6,99€')">Acheter</button>
+            </div>
+          </div>
+          <div class="payment-warning">Pour encaisser réellement, connecte ces boutons à Stripe Checkout ou PayPal côté serveur. Ici, c’est une simulation visuelle et fonctionnelle.</div>
+        </div>
+
+        <div id="shopGrid" class="shop-grid"></div>
+      </div>
+    </main>
+
+    <main id="premiumPage" class="hidden">
+      <div class="card premium-hero">
+        <h1>👑 FitQuest Premium</h1>
+        <p>Sans engagement. Annulable à tout moment.</p>
+        <div class="price">7,99€ / mois</div>
+        <p>Débloque des avantages pour progresser plus vite dans l’app.</p>
+        <button class="yellow" onclick="openRealPaymentInfo()">Payer Premium</button>
+        <button class="secondary" onclick="activatePremiumAfterServerConfirmation()">Simulation : activer Premium</button>
+        <div class="payment-warning">
+          Pour un vrai paiement, cette page doit être connectée à Stripe ou PayPal avec un serveur sécurisé. Un fichier HTML seul ne peut pas encaisser légalement et automatiquement de l’argent.
+        </div>
+      </div>
+
+      <div class="premium-feature-list">
+        <div class="feature-card"><strong>🗺️ Parcours personnalisés</strong><p>Choisis distance et difficulté au lieu de subir un parcours aléatoire.</p></div>
+        <div class="feature-card"><strong>⚡ +25% crédits</strong><p>Chaque vrai trajet terminé rapporte beaucoup plus.</p></div>
+        <div class="feature-card"><strong>🛍️ -15% boutique</strong><p>Tous les objets coûtent moins cher en crédits.</p></div>
+        <div class="feature-card"><strong>🎁 Coffre quotidien Premium</strong><p>50 à 150 crédits chaque jour au lieu de 10 à 50.</p></div>
+        <div class="feature-card"><strong>🎯 Défis Premium</strong><p>Objectifs exclusifs avec récompenses plus élevées.</p></div>
+        <div class="feature-card"><strong>📊 Statistiques avancées</strong><p>Distance totale, meilleure sortie, moyenne, progression.</p></div>
+        <div class="feature-card"><strong>🚫 Moins de pubs</strong><p>Premium n’a pas besoin des pubs pour progresser vite.</p></div>
+        <div class="feature-card"><strong>🔥 Streak renforcé</strong><p>Garde la motivation avec des bonus de série plus forts.</p></div>
+      </div>
+    </main>
+
+    <main id="historyPage" class="hidden">
+      <div class="card">
+        <h2>📜 Historique des trajets</h2>
+        <div id="historyList"></div>
+      </div>
+      <div class="card">
+        <h2>📊 Statistiques avancées</h2>
+        <p>Les stats complètes sont surtout utiles pour vendre Premium.</p>
+        <div id="statsAdvanced" class="info-grid"></div>
+      </div>
+      <div class="card">
+        <h2>🎁 Achats</h2>
+        <div id="purchaseList"></div>
+      </div>
+    </main>
+
+    <main id="creatorPage" class="hidden">
+      <div class="card">
+        <h2>🛠️ Mode créateur - Modifier la boutique</h2>
+        <p>Ajoute des produits avec nom, prix, image et description. Les produits sont sauvegardés sur ton appareil.</p>
+      </div>
+
+      <div class="creator-grid">
+        <div class="card">
+          <h3>Ajouter un produit</h3>
+          <label>Nom du produit</label>
+          <input id="newProductName" placeholder="Ex: Montre sport" />
+
+          <label>Prix en crédits</label>
+          <input id="newProductPrice" type="number" placeholder="Ex: 500" />
+
+          <label>Description</label>
+          <textarea id="newProductDesc" placeholder="Description de l’objet"></textarea>
+
+          <label>Image du produit</label>
+          <input id="newProductImage" type="file" accept="image/*" />
+
+          <button onclick="addProduct()">Ajouter le produit</button>
+        </div>
+
+        <div class="card">
+          <h3>Produits actuels</h3>
+          <div id="creatorProductList"></div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+
+  <div id="finishOverlay" class="finish-overlay hidden">
+    <div class="finish-modal">
+      <div class="finish-medal">🏅</div>
+      <h1>Trajet terminé !</h1>
+      <p style="color:white">Bravo, tes crédits viennent d’être ajoutés.</p>
+      <h2 id="finishRewardText">+0 crédits</h2>
+      <button onclick="closeFinishOverlay()">Continuer</button>
+    </div>
+  </div>
+
+
+  <nav id="tabs" class="tabs hidden">
+    <button class="tab active" onclick="showPage('homePage', this)">Accueil</button>
+    <button class="tab" onclick="showPage('shopPage', this)">Boutique</button>
+    <button class="tab" onclick="showPage('premiumPage', this)">Premium</button>
+    <button class="tab" onclick="showPage('historyPage', this)">Historique</button>
+    <button class="tab" onclick="showPage('creatorPage', this)">Créateur</button>
+  </nav>
+
+<script>
+  const defaultItems = [
+    { name: "Gourde sport", emoji: "💧", price: 120, desc: "Gourde légère pour courir.", image: "" },
+    { name: "T-shirt running", emoji: "👕", price: 300, desc: "T-shirt respirant.", image: "" },
+    { name: "Sac vélo", emoji: "🎒", price: 520, desc: "Sac compact pour vélo.", image: "" },
+    { name: "Bon cadeau", emoji: "🎁", price: 850, desc: "Bon échangeable.", image: "" }
+  ];
+
+  let user = JSON.parse(localStorage.getItem("fitquestUser")) || null;
+  let products = JSON.parse(localStorage.getItem("fitquestProducts")) || defaultItems;
+  let currentRoute = null;
+  let progress = 0;
+  let gpsWatchId = null;
+  let map, userMarker, routeLayer, destinationMarker;
+  let trackingMap, trackingUserMarker, trackingRouteLayer, trackingDestinationMarker;
+  let routeCoordinates = [];
+  let started = false;
+
+  function todayKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function daysBetween(dateA, dateB) {
+    const a = new Date(dateA + "T00:00:00");
+    const b = new Date(dateB + "T00:00:00");
+    return Math.round((b - a) / 86400000);
+  }
+
+  function ensureUserDefaults() {
+    if (!user) return;
+    user.credits = Number(user.credits || 0);
+    user.premium = !!user.premium;
+    user.history = Array.isArray(user.history) ? user.history : [];
+    user.purchases = Array.isArray(user.purchases) ? user.purchases : [];
+    user.streak = user.streak || 0;
+    user.lastSportDate = user.lastSportDate || "";
+    user.lastChestDate = user.lastChestDate || "";
+    user.claimedChallenges = Array.isArray(user.claimedChallenges) ? user.claimedChallenges : [];
+    user.routeGenerations = user.routeGenerations || { date: todayKey(), count: 0 };
+    if (user.routeGenerations.date !== todayKey()) user.routeGenerations = { date: todayKey(), count: 0 };
+  }
+
+  function rewardMultiplier() {
+    return user && user.premium ? 1.25 : 1;
+  }
+
+  function shopMultiplier() {
+    return user && user.premium ? 0.85 : 1;
+  }
+
+  function countRoutesToday() {
+    const today = new Date().toLocaleDateString("fr-FR");
+    return user.history.filter(h => h.date === today).length;
+  }
+
+  function countRoutesThisWeek() {
+    const now = new Date();
+    return user.history.filter(h => {
+      const parts = String(h.isoDate || "").split("-");
+      if (parts.length !== 3) return false;
+      const d = new Date(h.isoDate + "T00:00:00");
+      return (now - d) <= 7 * 86400000;
+    }).length;
+  }
+
+  function totalKm(modeFilter) {
+    return user.history.reduce((sum, h) => {
+      if (modeFilter && h.mode !== modeFilter) return sum;
+      return sum + Number(h.km || 0);
+    }, 0);
+  }
+
+  function updateStreakAfterSport() {
+    const today = todayKey();
+    if (!user.lastSportDate) {
+      user.streak = 1;
+    } else {
+      const diff = daysBetween(user.lastSportDate, today);
+      if (diff === 1) user.streak += 1;
+      if (diff > 1) user.streak = 1;
+    }
+    user.lastSportDate = today;
+  }
+
+  function getChallenges() {
+    const dailyRoutes = countRoutesToday();
+    const weeklyRoutes = countRoutesThisWeek();
+    const weekKm = totalKm();
+    const base = [
+      { key: todayKey() + "-daily-route", title: "Termine 1 trajet aujourd’hui", progress: dailyRoutes, target: 1, reward: 60, premium: false },
+      { key: todayKey() + "-weekly-3", title: "Termine 3 trajets cette semaine", progress: weeklyRoutes, target: 3, reward: 180, premium: false },
+      { key: todayKey() + "-weekly-km", title: "Parcours 10 km cette semaine", progress: Math.floor(weekKm), target: 10, reward: 220, premium: false },
+      { key: todayKey() + "-premium-double", title: "Défi Premium : 2 trajets aujourd’hui", progress: dailyRoutes, target: 2, reward: 300, premium: true }
+    ];
+    return base;
+  }
+
+  function renderChallenges() {
+    const box = document.getElementById("challengeList");
+    if (!box || !user) return;
+    box.innerHTML = "";
+    getChallenges().forEach(ch => {
+      const locked = ch.premium && !user.premium;
+      const done = ch.progress >= ch.target;
+      const claimed = user.claimedChallenges.includes(ch.key);
+      const div = document.createElement("div");
+      div.className = "challenge-card" + (locked ? " premium-locked" : "");
+      div.innerHTML = `
+        <h3>${ch.premium ? "👑 " : "🎯 "}${ch.title}</h3>
+        <p>Progression : <strong>${Math.min(ch.progress, ch.target)} / ${ch.target}</strong></p>
+        <span class="reward-badge">+${ch.reward} crédits</span>
+        ${locked ? '<p class="warning">Réservé Premium</p>' : ''}
+        <button onclick="claimChallenge('${ch.key}')" ${locked || !done || claimed ? "disabled" : ""}>${claimed ? "Récompense récupérée" : done ? "Récupérer" : "Pas encore terminé"}</button>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  function claimChallenge(key) {
+    ensureUserDefaults();
+    const challenge = getChallenges().find(c => c.key === key);
+    if (!challenge) return;
+    if (challenge.premium && !user.premium) return alert("Ce défi est réservé Premium.");
+    if (challenge.progress < challenge.target) return alert("Défi pas encore terminé.");
+    if (user.claimedChallenges.includes(key)) return alert("Déjà récupéré.");
+    user.claimedChallenges.push(key);
+    user.credits += challenge.reward;
+    user.purchases.unshift({ name: "Récompense défi", emoji: "🎯", price: -challenge.reward, date: new Date().toLocaleDateString("fr-FR") });
+    save();
+    updateUI();
+    alert("Défi validé : +" + challenge.reward + " crédits !");
+  }
+
+  function openDailyChest() {
+    ensureUserDefaults();
+    const today = todayKey();
+    const status = document.getElementById("dailyChestStatus");
+    if (user.lastChestDate === today) {
+      if (status) status.innerText = "Tu as déjà ouvert ton coffre aujourd’hui. Reviens demain.";
+      return alert("Coffre déjà ouvert aujourd’hui.");
+    }
+    const min = user.premium ? 50 : 10;
+    const max = user.premium ? 150 : 50;
+    const reward = Math.floor(Math.random() * (max - min + 1)) + min;
+    user.lastChestDate = today;
+    user.credits += reward;
+    user.purchases.unshift({ name: user.premium ? "Coffre Premium quotidien" : "Coffre quotidien", emoji: "🎁", price: -reward, date: new Date().toLocaleDateString("fr-FR") });
+    save();
+    updateUI();
+    if (status) status.innerText = "Coffre ouvert : +" + reward + " crédits.";
+    alert("Coffre ouvert : +" + reward + " crédits !");
+  }
+
+  function renderAdvancedStats() {
+    const box = document.getElementById("statsAdvanced");
+    if (!box || !user) return;
+    const runs = user.history.filter(h => h.mode === "course").length;
+    const rides = user.history.filter(h => h.mode === "velo").length;
+    const best = user.history.reduce((m, h) => Math.max(m, Number(h.km || 0)), 0);
+    const total = totalKm();
+    const avg = user.history.length ? total / user.history.length : 0;
+    box.innerHTML = `
+      <div class="info"><small>Distance totale</small><strong>${total.toFixed(2)} km</strong></div>
+      <div class="info"><small>Meilleur trajet</small><strong>${best.toFixed(2)} km</strong></div>
+      <div class="info"><small>Moyenne par trajet</small><strong>${avg.toFixed(2)} km</strong></div>
+      <div class="info"><small>Courses</small><strong>${runs}</strong></div>
+      <div class="info"><small>Vélo</small><strong>${rides}</strong></div>
+      <div class="info"><small>Streak actuel</small><strong>${user.streak || 0} jours</strong></div>
+    `;
+  }
+
+
+  function save() {
+    localStorage.setItem("fitquestUser", JSON.stringify(user));
+    localStorage.setItem("fitquestProducts", JSON.stringify(products));
+  }
+
+  function login() {
+    const name = document.getElementById("usernameInput").value.trim();
+    const pass = document.getElementById("passwordInput").value.trim();
+
+    if (!name || !pass) {
+      alert("Entre un nom et un mot de passe.");
+      return;
+    }
+
+    user = JSON.parse(localStorage.getItem("fitquestUser")) || {
+      name,
+      credits: 100,
+      premium: false,
+      history: [],
+      purchases: [],
+      streak: 0,
+      lastSportDate: "",
+      lastChestDate: "",
+      claimedChallenges: [],
+      routeGenerations: { date: todayKey(), count: 0 }
+    };
+
+    user.name = name;
+    ensureUserDefaults();
+    save();
+    openApp();
+  }
+
+  function openApp() {
+    if (!user) return;
+    ensureUserDefaults();
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("appPage").classList.remove("hidden");
+    document.getElementById("tabs").classList.remove("hidden");
+    updateUI();
+
+    setTimeout(() => {
+      initMap();
+      map.invalidateSize();
+    }, 150);
+  }
+
+  function initMap() {
+    if (map) return;
+
+    map = L.map("map").setView([48.8566, 2.3522], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    document.getElementById("gpsStatus").innerText = "Carte chargée. Génère un parcours depuis ta position.";
+  }
+
+
+  function initTrackingMap() {
+    if (trackingMap) return;
+
+    trackingMap = L.map("trackingMap").setView([48.8566, 2.3522], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    }).addTo(trackingMap);
+  }
+
+  function syncTrackingMap() {
+    if (!currentRoute || !trackingMap) return;
+
+    if (trackingRouteLayer) trackingMap.removeLayer(trackingRouteLayer);
+    if (trackingDestinationMarker) trackingMap.removeLayer(trackingDestinationMarker);
+
+    trackingRouteLayer = L.polyline(routeCoordinates, {
+      color: "#fc4c02",
+      weight: 7,
+      opacity: .95
+    }).addTo(trackingMap);
+
+    trackingDestinationMarker = L.marker([currentRoute.dest.lat, currentRoute.dest.lng])
+      .addTo(trackingMap)
+      .bindPopup("Arrivée");
+
+    trackingMap.fitBounds(trackingRouteLayer.getBounds(), { padding: [30, 30] });
+  }
+
+
+  function updateUI() {
+    ensureUserDefaults();
+    document.getElementById("helloText").innerText = "Bienvenue, " + user.name;
+    document.getElementById("profileName").innerText = user.name;
+    document.getElementById("creditsText").innerText = user.credits;
+    document.getElementById("streakText").innerText = user.streak || 0;
+    document.getElementById("levelText").innerText = Math.floor(user.credits / 250) + 1;
+    document.getElementById("premiumText").innerText = user.premium ? "Premium" : "Basic";
+    document.getElementById("completedText").innerText = user.history.length;
+
+    renderShop();
+    renderHistory();
+    renderCreatorProducts();
+    renderChallenges();
+    renderAdvancedStats();
+    const limitText = document.getElementById("routeLimitText");
+    if (limitText) limitText.innerText = user.premium ? "Premium : générations GPS illimitées + parcours personnalisés." : "Basic : " + user.routeGenerations.count + "/3 générations GPS utilisées aujourd’hui.";
+    const chestStatus = document.getElementById("dailyChestStatus");
+    if (chestStatus && user.lastChestDate === todayKey()) chestStatus.innerText = "Coffre déjà ouvert aujourd’hui. Reviens demain.";
+
+    if (currentRoute) {
+      document.getElementById("routeDistance").innerText = user.premium ? currentRoute.km.toFixed(2) + " km" : "Cachée 🔒";
+      document.getElementById("routeReward").innerText = (user.premium ? Math.round(currentRoute.reward * rewardMultiplier()) : currentRoute.reward) + " crédits";
+    }
+  }
+
+  function getRandomDestination(lat, lng, mode) {
+    const custom = document.getElementById("customDistance")?.value || "auto";
+    const difficulty = document.getElementById("routeDifficulty")?.value || "normal";
+    let distanceKm;
+
+    if (user && user.premium && custom !== "auto") {
+      distanceKm = Number(custom);
+    } else {
+      distanceKm = mode === "velo" ? randomBetween(3.5, 8.5) : randomBetween(1.5, 4.5);
+    }
+
+    if (user && user.premium && difficulty === "easy") distanceKm *= 0.85;
+    if (user && user.premium && difficulty === "hard") distanceKm *= 1.2;
+
+    const angle = Math.random() * Math.PI * 2;
+    const deltaLat = (distanceKm / 111) * Math.cos(angle);
+    const deltaLng = (distanceKm / (111 * Math.cos(lat * Math.PI / 180))) * Math.sin(angle);
+    return { lat: lat + deltaLat, lng: lng + deltaLng, estimatedKm: distanceKm };
+  }
+
+  function randomBetween(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function generateGpsRoute() {
+    ensureUserDefaults();
+    initMap();
+
+    if (!user.premium && user.routeGenerations.count >= 3) {
+      alert("Limite Basic atteinte : 3 générations GPS par jour. Premium = illimité.");
+      return;
+    }
+
+    if (!user.premium) {
+      user.routeGenerations.count += 1;
+      save();
+      updateUI();
+    }
+
+    if (!navigator.geolocation) {
+      alert("GPS non disponible sur ce navigateur.");
+      return;
+    }
+
+    document.getElementById("gpsStatus").innerText = "Recherche de ta position GPS...";
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const start = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        buildRouteFromPosition(start, false);
+      },
+      () => {
+        alert("GPS refusé ou impossible. Utilise 'Trajet test sur carte' pour voir la démo.");
+        document.getElementById("gpsStatus").innerText = "GPS refusé. Autorise la localisation pour générer depuis chez toi.";
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  function generateTestRoute() {
+    initMap();
+
+    // Essaie d'abord la position réelle, sinon utilise Paris comme exemple.
+    if (navigator.geolocation) {
+      document.getElementById("gpsStatus").innerText = "Création d’un trajet test...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => buildRouteFromPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }, true),
+        () => buildRouteFromPosition({ lat: 48.8566, lng: 2.3522 }, true),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      buildRouteFromPosition({ lat: 48.8566, lng: 2.3522 }, true);
+    }
+  }
+
+  async function buildRouteFromPosition(start, isTest) {
+    const mode = document.getElementById("sportMode").value;
+    const dest = getRandomDestination(start.lat, start.lng, mode);
+
+    clearRoute();
+    progress = 0;
+    started = false;
+    updateProgress();
+
+    if (userMarker) map.removeLayer(userMarker);
+    userMarker = L.marker([start.lat, start.lng]).addTo(map).bindPopup("Départ : ta position").openPopup();
+    destinationMarker = L.marker([dest.lat, dest.lng]).addTo(map).bindPopup("Arrivée du parcours");
+
+    map.setView([start.lat, start.lng], 14);
+
+    const profile = mode === "velo" ? "cycling" : "foot";
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&steps=true`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.routes || !data.routes[0]) throw new Error("Aucune route");
+
+      const route = data.routes[0];
+      routeCoordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const km = route.distance / 1000;
+      const reward = Math.round(km * (mode === "velo" ? 45 : 60));
+
+      routeLayer = L.polyline(routeCoordinates, {
+        color: "#fc4c02",
+        weight: 6,
+        opacity: .95
+      }).addTo(map);
+
+      map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+
+      const firstStep = route.legs[0]?.steps?.[0]?.maneuver?.type || "continue";
+      const direction = directionText(firstStep);
+
+      currentRoute = {
+        name: isTest ? "Trajet test carte" : (user.premium ? "Parcours Premium personnalisé" : "Parcours GPS"),
+        km,
+        reward,
+        start,
+        dest,
+        isTest
+      };
+
+      document.getElementById("routeName").innerText = currentRoute.name;
+      document.getElementById("routeDistance").innerText = user.premium ? km.toFixed(2) + " km" : "Cachée 🔒";
+      document.getElementById("routeReward").innerText = isTest ? "0 crédit (test)" : (user.premium ? Math.round(reward * rewardMultiplier()) : reward) + " crédits";
+      document.getElementById("gpsStatus").innerText =
+        isTest
+          ? "Trajet test affiché depuis ta position. Direction : " + direction + ". Aucun crédit ne sera donné."
+          : "Trajet créé depuis ta position. Direction : " + direction + ". Lance le GPS pour commencer.";
+
+      updateUI();
+
+    } catch (e) {
+      document.getElementById("gpsStatus").innerText = "Impossible de calculer l’itinéraire. Vérifie ta connexion internet.";
+    }
+  }
+
+  function directionText(type) {
+    const dict = {
+      depart: "commence le parcours",
+      turn: "tourne à la prochaine intersection",
+      newName: "continue sur la route",
+      continue: "continue tout droit",
+      arrive: "arrivée",
+      merge: "rejoins la route",
+      fork: "prends la bifurcation",
+      endOfRoad: "fin de route, tourne",
+      roundabout: "prends le rond-point"
+    };
+    return dict[type] || "suis la ligne orange sur la carte";
+  }
+
+  function clearRoute() {
+    if (routeLayer) map.removeLayer(routeLayer);
+    if (destinationMarker) map.removeLayer(destinationMarker);
+    routeLayer = null;
+    destinationMarker = null;
+    routeCoordinates = [];
+  }
+
+  function startGpsTracking() {
+    if (!currentRoute) {
+      alert("Génère d’abord un parcours.");
+      return;
+    }
+
+    if (currentRoute.isTest) {
+      alert("Le trajet test ne donne pas de crédits. Génère un vrai parcours depuis ta position.");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("GPS non disponible.");
+      return;
+    }
+
+    started = true;
+    showPage("trackingPage", null);
+    setTimeout(() => {
+      initTrackingMap();
+      trackingMap.invalidateSize();
+      syncTrackingMap();
+    }, 150);
+
+    document.getElementById("gpsStatus").innerText = "GPS lancé. Suis la ligne orange.";
+    document.getElementById("trackingGpsStatus").innerText = "GPS lancé. Suis la ligne orange.";
+
+    gpsWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.circleMarker([lat, lng], {
+          radius: 9,
+          color: "#ffffff",
+          fillColor: "#fc4c02",
+          fillOpacity: 1,
+          weight: 3
+        }).addTo(map).bindPopup("Ta position actuelle");
+
+        if (trackingMap) {
+          if (trackingUserMarker) trackingMap.removeLayer(trackingUserMarker);
+          trackingUserMarker = L.circleMarker([lat, lng], {
+            radius: 11,
+            color: "#ffffff",
+            fillColor: "#fc4c02",
+            fillOpacity: 1,
+            weight: 3
+          }).addTo(trackingMap).bindPopup("Toi");
+          trackingMap.panTo([lat, lng]);
+        }
+
+        const distToEnd = distanceMeters(lat, lng, currentRoute.dest.lat, currentRoute.dest.lng);
+        const totalMeters = currentRoute.km * 1000;
+        progress = Math.max(0, Math.min(100, Math.round(((totalMeters - distToEnd) / totalMeters) * 100)));
+
+        updateProgress();
+        document.getElementById("gpsStatus").innerText = "GPS actif ✅ Distance jusqu’à l’arrivée : " + Math.round(distToEnd) + " m";
+        document.getElementById("trackingGpsStatus").innerText = "GPS actif ✅ Distance jusqu’à l’arrivée : " + Math.round(distToEnd) + " m";
+        document.getElementById("trackingDistanceText").innerText = Math.round(distToEnd) + " m restantes";
+
+        if (distToEnd <= 60) finishRoute();
+      },
+      () => {
+        document.getElementById("gpsStatus").innerText = "GPS refusé ou impossible. Autorise le GPS pour valider le trajet.";
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    );
+  }
+
+  function distanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = value => value * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function updateProgress() {
+    document.getElementById("progressText").innerText = progress + "%";
+    document.getElementById("progressBar").style.width = progress + "%";
+
+    const trackingProgressText = document.getElementById("trackingProgressText");
+    const trackingProgressBar = document.getElementById("trackingProgressBar");
+    if (trackingProgressText) trackingProgressText.innerText = progress + "%";
+    if (trackingProgressBar) trackingProgressBar.style.width = progress + "%";
+
+    if (currentRoute) {
+      const reward = user && user.premium ? Math.round(currentRoute.reward * rewardMultiplier()) : currentRoute.reward;
+      const rewardText = currentRoute.isTest ? "0 crédit (test)" : reward + " crédits";
+      const trackingRewardText = document.getElementById("trackingRewardText");
+      if (trackingRewardText) trackingRewardText.innerText = rewardText;
+    }
+  }
+
+  function finishRoute() {
+    if (!currentRoute || currentRoute.isTest) return;
+
+    const mode = document.getElementById("sportMode").value;
+    const reward = user.premium ? Math.round(currentRoute.reward * rewardMultiplier()) : currentRoute.reward;
+
+    updateStreakAfterSport();
+    const streakBonus = user.streak >= 7 ? (user.premium ? 250 : 100) : 0;
+    const totalReward = reward + streakBonus;
+
+    user.credits += totalReward;
+    user.history.unshift({
+      name: currentRoute.name,
+      km: currentRoute.km.toFixed(2),
+      reward: totalReward,
+      baseReward: reward,
+      streakBonus,
+      mode,
+      date: new Date().toLocaleDateString("fr-FR"),
+      isoDate: todayKey()
+    });
+
+    save();
+    updateUI();
+
+    if (gpsWatchId) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+    }
+
+    document.getElementById("finishRewardText").innerText = "+" + totalReward + " crédits" + (streakBonus ? " dont +" + streakBonus + " bonus streak" : "");
+    document.getElementById("finishOverlay").classList.remove("hidden");
+    showPage("historyPage", document.querySelectorAll(".tab")[3]);
+  }
+
+  function showPremiumPage() {
+    const premiumBtn = document.querySelectorAll(".tab")[2];
+    showPage("premiumPage", premiumBtn);
+  }
+
+
+  async function openRealPaymentInfo() {
+    try {
+      const res = await fetch("/create-checkout-session", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Erreur paiement");
+      }
+    } catch (err) {
+      alert("Erreur serveur");
+    }
+  }
+
+  function watchAdForCredits() {
+    if (!user) return;
+
+    const reward = 20;
+    const statusTexts = [
+      document.getElementById("adRewardStatus"),
+      document.getElementById("shopAdRewardStatus")
+    ];
+
+    statusTexts.forEach(el => {
+      if (el) el.innerText = "Publicité en cours...";
+    });
+
+    // Simulation : dans une vraie app, il faut attendre la confirmation de la régie publicitaire
+    // avant d'ajouter les crédits. Exemple : callback de pub récompensée AdMob.
+    setTimeout(() => {
+      user.credits += reward;
+      user.purchases.unshift({
+        name: "Récompense publicité",
+        emoji: "🎬",
+        price: -reward,
+        date: new Date().toLocaleDateString("fr-FR")
+      });
+      save();
+      updateUI();
+
+      statusTexts.forEach(el => {
+        if (el) el.innerText = "+" + reward + " crédits ajoutés grâce à la publicité.";
+      });
+
+      alert("Pub terminée : +" + reward + " crédits ajoutés !");
+    }, 1200);
+  }
+
+  function buyCreditPack(amount, priceLabel) {
+    if (!user) return;
+
+    const confirmPurchase = confirm(
+      "Simulation d'achat : veux-tu ajouter " + amount + " crédits pour " + priceLabel + " ?\n\nPour un vrai paiement, connecte ce bouton à Stripe Checkout ou PayPal."
+    );
+
+    if (!confirmPurchase) return;
+
+    user.credits += amount;
+    user.purchases.unshift({
+      name: "Pack de " + amount + " crédits",
+      emoji: "💳",
+      price: priceLabel,
+      date: new Date().toLocaleDateString("fr-FR")
+    });
+
+    save();
+    updateUI();
+    alert("Achat simulé réussi : +" + amount + " crédits.");
+  }
+
+  function activatePremiumAfterServerConfirmation() {
+    // Cette fonction représente ce que fera le serveur après confirmation du paiement.
+    user.premium = true;
+    save();
+    updateUI();
+    alert("Premium activé en simulation. En production, seul le serveur doit faire ça après paiement confirmé.");
+  }
+
+  function renderShop() {
+    const box = document.getElementById("shopGrid");
+    if (!box) return;
+    box.innerHTML = "";
+
+    products.forEach((item, index) => {
+      const price = Math.ceil(item.price * shopMultiplier());
+      const div = document.createElement("div");
+      div.className = "shop-item";
+      const visual = item.image
+        ? `<img class="shop-img" src="${item.image}" alt="${item.name}">`
+        : `<div class="emoji">${item.emoji || "🎁"}</div>`;
+
+      div.innerHTML = `
+        ${visual}
+        <h3>${item.name}</h3>
+        <p>${item.desc || ""}</p>
+        <p>Prix : <strong>${price} crédits</strong></p>
+        ${user.premium ? '<p class="success">Réduction Premium -15%</p>' : ''}
+        <button onclick="buyItem(${index})" ${user.credits < price ? "disabled" : ""}>Acheter</button>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  function buyItem(index) {
+    const item = products[index];
+    const price = Math.ceil(item.price * shopMultiplier());
+
+    if (user.credits < price) {
+      alert("Pas assez de crédits.");
+      return;
+    }
+
+    user.credits -= price;
+    user.purchases.unshift({
+      name: item.name,
+      emoji: item.emoji || "🎁",
+      price,
+      date: new Date().toLocaleDateString("fr-FR")
+    });
+
+    save();
+    updateUI();
+    alert("Achat réussi : " + item.name);
+  }
+
+  function addProduct() {
+    const name = document.getElementById("newProductName").value.trim();
+    const price = parseInt(document.getElementById("newProductPrice").value, 10);
+    const desc = document.getElementById("newProductDesc").value.trim();
+    const imageInput = document.getElementById("newProductImage");
+
+    if (!name || !price) {
+      alert("Ajoute au minimum un nom et un prix.");
+      return;
+    }
+
+    const addFinalProduct = (imageData) => {
+      products.unshift({ name, price, desc, image: imageData || "", emoji: "🎁" });
+
+      document.getElementById("newProductName").value = "";
+      document.getElementById("newProductPrice").value = "";
+      document.getElementById("newProductDesc").value = "";
+      document.getElementById("newProductImage").value = "";
+
+      save();
+      updateUI();
+      alert("Produit ajouté à la boutique.");
+    };
+
+    if (imageInput.files && imageInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => addFinalProduct(e.target.result);
+      reader.readAsDataURL(imageInput.files[0]);
+    } else {
+      addFinalProduct("");
+    }
+  }
+
+  function deleteProduct(index) {
+    if (!confirm("Supprimer ce produit ?")) return;
+    products.splice(index, 1);
+    save();
+    updateUI();
+  }
+
+  function renderCreatorProducts() {
+    const list = document.getElementById("creatorProductList");
+    if (!list) return;
+    list.innerHTML = products.length ? "" : "<p>Aucun produit.</p>";
+
+    products.forEach((p, i) => {
+      list.innerHTML += `
+        <div class="list-row">
+          <div>
+            <strong>${p.name}</strong><br>
+            <small>${p.price} crédits</small>
+          </div>
+          <button class="red" onclick="deleteProduct(${i})">Supprimer</button>
+        </div>
+      `;
+    });
+  }
+
+  function renderHistory() {
+    const historyList = document.getElementById("historyList");
+    const purchaseList = document.getElementById("purchaseList");
+    if (!historyList || !purchaseList) return;
+
+    historyList.innerHTML = user.history.length ? "" : "<p>Aucun trajet terminé.</p>";
+    user.history.forEach(h => {
+      historyList.innerHTML += `
+        <div class="list-row">
+          <div><strong>${h.name}</strong><br><small>${h.date} · ${h.mode} · ${h.km} km</small></div>
+          <div class="success">+${h.reward}</div>
+        </div>
+      `;
+    });
+
+    purchaseList.innerHTML = user.purchases.length ? "" : "<p>Aucun achat.</p>";
+    user.purchases.forEach(p => {
+      const amountText = typeof p.price === "number"
+        ? (p.price < 0 ? "+" + Math.abs(p.price) : "-" + p.price)
+        : p.price;
+      const amountClass = typeof p.price === "number" && p.price < 0 ? "success" : "warning";
+
+      purchaseList.innerHTML += `
+        <div class="list-row">
+          <div><strong>${p.emoji} ${p.name}</strong><br><small>${p.date}</small></div>
+          <div class="${amountClass}">${amountText}</div>
+        </div>
+      `;
+    });
+  }
+
+  function showPage(id, btn) {
+    ["homePage", "trackingPage", "shopPage", "premiumPage", "historyPage", "creatorPage"].forEach(page => {
+      const el = document.getElementById(page);
+      if (el) el.classList.add("hidden");
+    });
+
+    document.getElementById(id).classList.remove("hidden");
+
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+
+    if (id === "homePage") {
+      setTimeout(() => {
+        initMap();
+        map.invalidateSize();
+      }, 120);
+    }
+  }
+
+  function closeFinishOverlay() {
+    document.getElementById("finishOverlay").classList.add("hidden");
+  }
+
+  function logout() {
+    document.getElementById("appPage").classList.add("hidden");
+    document.getElementById("tabs").classList.add("hidden");
+    document.getElementById("loginPage").classList.remove("hidden");
+  }
+
+  if (user) openApp();
+</script>
+
+</body>
+</html>
