@@ -1756,12 +1756,23 @@
     showPage("premiumPage", premiumBtn);
   }
 
-  async function openRealPaymentInfo() {
-    try {
-      const res = await fetch("/create-checkout-session", {
-        method: "POST",
-      });
+ async function openRealPaymentInfo() {
+  try {
+    const res = await fetch("/create-checkout-session", {
+      method: "POST",
+    });
 
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Erreur paiement : " + (data.error || "aucun détail reçu du serveur"));
+    }
+  } catch (err) {
+    alert("Erreur serveur : " + err.message);
+  }
+}
       const data = await res.json();
 
       if (data.url) {
