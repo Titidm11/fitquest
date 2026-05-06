@@ -4,6 +4,15 @@ const Stripe = require("stripe");
 require("dotenv").config();
 
 const app = express();
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("ERREUR: STRIPE_SECRET_KEY manquant");
+}
+
+if (!process.env.DOMAIN) {
+  console.error("ERREUR: DOMAIN manquant");
+}
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(express.json());
@@ -25,14 +34,14 @@ app.post("/create-checkout-session", async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: process.env.DOMAIN + "/success",
-      cancel_url: process.env.DOMAIN + "/cancel",
+      success_url: `${process.env.DOMAIN}/success`,
+      cancel_url: `${process.env.DOMAIN}/cancel`,
     });
 
     res.json({ url: session.url });
   } catch (err) {
-    console.log(err);
-    res.status(500).send("Erreur Stripe");
+    console.error("Erreur Stripe:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -67,11 +76,18 @@ app.get("/success", (req, res) => {
 });
 
 app.get("/cancel", (req, res) => {
-  res.send("<h1>Paiement annulé ❌</h1><a href='/'>Retour</a>");
+  res.send(`
+    <h1>Paiement annulé ❌</h1>
+    <a href="/">Retour à FitQuest</a>
+  `);
+});
+
+app.get("/health", (req, res) => {
+  res.send("FitQuest serveur OK");
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("Serveur lancé sur http://localhost:" + PORT);
+  console.log("Serveur lancé sur le port " + PORT);
 });
