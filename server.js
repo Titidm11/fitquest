@@ -2,8 +2,7 @@ const express = require("express");
 const path = require("path");
 const Stripe = require("stripe");
 require("dotenv").config();
-
-const app = express();
+const { createClient } = require("@supabase/supabase-js");const app = express();
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("ERREUR: STRIPE_SECRET_KEY manquant");
@@ -14,8 +13,10 @@ if (!process.env.DOMAIN) {
 }
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
-app.use(express.json());
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/create-checkout-session", async (req, res) => {
@@ -85,8 +86,22 @@ app.get("/cancel", (req, res) => {
 app.get("/health", (req, res) => {
   res.send("FitQuest serveur OK");
 });
+app.get("/api/db-test", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("shop_items")
+      .select("*")
+      .limit(5);
 
-const PORT = process.env.PORT || 3000;
+    if (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+
+    res.json({ ok: true, items: data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
