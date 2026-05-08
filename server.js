@@ -85,8 +85,169 @@ app.get("/cancel", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.send("FitQuest serveur OK");
+});// ===============================
+// API UTILISATEURS SUPABASE
+// ===============================
+
+function cleanUsername(username) {
+  return String(username || "").trim().toLowerCase();
+}
+
+function cleanPassword(password) {
+  return String(password || "").trim();
+}
+
+app.post("/api/register", async (req, res) => {
+  try {
+    const username = cleanUsername(req.body.username);
+    const password = cleanPassword(req.body.password);
+
+    if (!username || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: "Nom d'utilisateur et mot de passe obligatoires."
+      });
+    }
+
+    if (password.length < 4) {
+      return res.status(400).json({
+        ok: false,
+        error: "Mot de passe trop court."
+      });
+    }
+
+    const { data: existingUser, error: existingError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("username", username)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json({
+        ok: false,
+        error: existingError.message
+      });
+    }
+
+    if (existingUser) {
+      return res.status(409).json({
+        ok: false,
+        error: "Ce nom d'utilisateur existe déjà."
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert({
+        username,
+        password_hash: password,
+        credits: 100,
+        premium: false,
+        streak: 0,
+        level: 1
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    res.json({
+      ok: true,
+      user: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
 });
-app.get("/api/db-test", async (req, res) => {
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const username = cleanUsername(req.body.username);
+    const password = cleanPassword(req.body.password);
+
+    if (!username || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: "Nom d'utilisateur et mot de passe obligatoires."
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("username", username)
+      .eq("password_hash", password)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        ok: false,
+        error: "Identifiants incorrects."
+      });
+    }
+
+    res.json({
+      ok: true,
+      user
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
+app.get("/api/me/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const { data: user, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        ok: false,
+        error: "Utilisateur introuvable."
+      });
+    }
+
+    res.json({
+      ok: true,
+      user
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});app.get("/api/db-test", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("shop_items")
