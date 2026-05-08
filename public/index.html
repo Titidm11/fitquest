@@ -1240,7 +1240,7 @@
   }
 
 
-  function save() {
+ function save() {
   localStorage.setItem("fitquestUser", JSON.stringify(user));
   localStorage.setItem("fitquestProducts", JSON.stringify(products));
 
@@ -1262,8 +1262,7 @@
       console.log("Sauvegarde Supabase impossible pour le moment.");
     });
   }
-}
-  
+}  
 async function login() {
   const name = document.getElementById("usernameInput").value.trim();
   const pass = document.getElementById("passwordInput").value.trim();
