@@ -1245,35 +1245,75 @@
     localStorage.setItem("fitquestProducts", JSON.stringify(products));
   }
 
-  function login() {
-    const name = document.getElementById("usernameInput").value.trim();
-    const pass = document.getElementById("passwordInput").value.trim();
+  
+async function login() {
+  const name = document.getElementById("usernameInput").value.trim();
+  const pass = document.getElementById("passwordInput").value.trim();
 
-    if (!name || !pass) {
-      alert("Entre un nom et un mot de passe.");
+  if (!name || !pass) {
+    alert("Entre un nom et un mot de passe.");
+    return;
+  }
+
+  try {
+    let response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: name,
+        password: pass
+      })
+    });
+
+    let data = await response.json();
+
+    if (!data.ok && data.error && data.error.includes("Identifiants incorrects")) {
+      response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: name,
+          password: pass
+        })
+      });
+
+      data = await response.json();
+    }
+
+    if (!data.ok) {
+      alert(data.error || "Connexion impossible.");
       return;
     }
 
-    user = JSON.parse(localStorage.getItem("fitquestUser")) || {
-      name,
-      credits: 100,
-      premium: false,
+    const dbUser = data.user;
+
+    user = {
+      id: dbUser.id,
+      name: dbUser.username,
+      credits: dbUser.credits || 0,
+      premium: !!dbUser.premium,
       history: [],
       purchases: [],
-      streak: 0,
-      lastSportDate: "",
-      lastChestDate: "",
+      streak: dbUser.streak || 0,
+      lastSportDate: dbUser.last_sport_date || "",
+      lastChestDate: dbUser.last_chest_date || "",
       claimedChallenges: [],
       routeGenerations: { date: todayKey(), count: 0 }
     };
 
-    user.name = name;
-    ensureUserDefaults();
-    save();
-    openApp();
-  }
+    localStorage.setItem("fitquestUserId", dbUser.id);
+    localStorage.setItem("fitquestUser", JSON.stringify(user));
 
-  function openApp() {
+    ensureUserDefaults();
+    openApp();
+  } catch (err) {
+    alert("Erreur de connexion au serveur.");
+  }
+}  function openApp() {
     if (!user) return;
     ensureUserDefaults();
     document.getElementById("loginPage").classList.add("hidden");
