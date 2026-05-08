@@ -309,8 +309,105 @@ app.get("/api/me/:userId", async (req, res) => {
     res.json({ ok: true, items: data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
+  }app.post("/api/save-route", async (req, res) => {
+  try {
+    const {
+      userId,
+      routeName,
+      mode,
+      km,
+      reward,
+      baseReward,
+      streakBonus
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        ok: false,
+        error: "userId manquant."
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("routes")
+      .insert({
+        user_id: userId,
+        route_name: routeName || "Trajet FitQuest",
+        mode: mode || "course",
+        km: Number(km || 0),
+        reward: Number(reward || 0),
+        base_reward: Number(baseReward || reward || 0),
+        streak_bonus: Number(streakBonus || 0)
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    res.json({
+      ok: true,
+      route: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
-});const PORT = process.env.PORT || 3000;
+});
+
+app.post("/api/save-purchase", async (req, res) => {
+  try {
+    const {
+      userId,
+      name,
+      type,
+      amount,
+      priceLabel
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        ok: false,
+        error: "userId manquant."
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("purchases")
+      .insert({
+        user_id: userId,
+        name: name || "Action FitQuest",
+        type: type || "generic",
+        amount: Number(amount || 0),
+        price_label: priceLabel || null
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    res.json({
+      ok: true,
+      purchase: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});});const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
