@@ -228,8 +228,56 @@ app.get("/api/me/:userId", async (req, res) => {
         ok: false,
         error: error.message
       });
+    }app.post("/api/save-progress", async (req, res) => {
+  try {
+    const {
+      userId,
+      credits,
+      streak,
+      lastSportDate,
+      lastChestDate,
+      level
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        ok: false,
+        error: "userId manquant."
+      });
     }
 
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({
+        credits: Number(credits || 0),
+        streak: Number(streak || 0),
+        last_sport_date: lastSportDate || null,
+        last_chest_date: lastChestDate || null,
+        level: Number(level || 1),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", userId)
+      .select("*")
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
+
+    res.json({
+      ok: true,
+      user: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
     if (!user) {
       return res.status(404).json({
         ok: false,
