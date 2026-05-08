@@ -1241,10 +1241,28 @@
 
 
   function save() {
-    localStorage.setItem("fitquestUser", JSON.stringify(user));
-    localStorage.setItem("fitquestProducts", JSON.stringify(products));
-  }
+  localStorage.setItem("fitquestUser", JSON.stringify(user));
+  localStorage.setItem("fitquestProducts", JSON.stringify(products));
 
+  if (user && user.id) {
+    fetch("/api/save-progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        credits: user.credits,
+        streak: user.streak,
+        lastSportDate: user.lastSportDate,
+        lastChestDate: user.lastChestDate,
+        level: Math.floor(user.credits / 250) + 1
+      })
+    }).catch(() => {
+      console.log("Sauvegarde Supabase impossible pour le moment.");
+    });
+  }
+}
   
 async function login() {
   const name = document.getElementById("usernameInput").value.trim();
