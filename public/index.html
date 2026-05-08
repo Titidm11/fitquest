@@ -2066,8 +2066,52 @@ async function login() {
     document.getElementById("loginPage").classList.remove("hidden");
     document.body.classList.remove("creator-enabled", "tracking-mode");
   }
+async function bootApp() {
+  const storedUserId = localStorage.getItem("fitquestUserId") || (user && user.id);
 
-  if (user) openApp();
+  if (!storedUserId) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/me/" + storedUserId);
+    const data = await res.json();
+
+    if (!data.ok) {
+      localStorage.removeItem("fitquestUser");
+      localStorage.removeItem("fitquestUserId");
+      user = null;
+      return;
+    }
+
+    const dbUser = data.user;
+
+    const oldLocalUser = JSON.parse(localStorage.getItem("fitquestUser")) || {};
+
+    user = {
+      id: dbUser.id,
+      name: dbUser.username,
+      credits: Number(dbUser.credits || 0),
+      premium: !!dbUser.premium,
+      history: oldLocalUser.history || [],
+      purchases: oldLocalUser.purchases || [],
+      streak: Number(dbUser.streak || 0),
+      lastSportDate: dbUser.last_sport_date || "",
+      lastChestDate: dbUser.last_chest_date || "",
+      claimedChallenges: oldLocalUser.claimedChallenges || [],
+      routeGenerations: oldLocalUser.routeGenerations || { date: todayKey(), count: 0 }
+    };
+
+    localStorage.setItem("fitquestUserId", dbUser.id);
+    localStorage.setItem("fitquestUser", JSON.stringify(user));
+
+    openApp();
+  } catch (err) {
+    console.log("Impossible de recharger l’utilisateur Supabase.");
+  }
+}
+
+bootApp();  
 </script>
 
 </body>
